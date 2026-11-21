@@ -28,6 +28,15 @@ Se usan desde `main` (`@main`): un cambio aquí llega a todos los repositorios e
 | Documentos y diagramas | [`lu-vin/template-docs`](https://github.com/lu-vin/template-docs) |
 | Otra cosa (una app, un servicio) | Ninguno todavía: parte de cero y llama a `commits.yml` y `branches.yml` |
 
+> **Todo repositorio necesita el check `commits / Conventional Commits`.** El ruleset de la organización lo exige en el `main` de todos los repositorios, incluidos los nuevos. Un repositorio sin un job `commits` que llame a `commits.yml` no puede fusionar ningún pull request. Los templates ya lo traen; si partes de cero, agrégalo antes del primer pull request:
+>
+> ```yaml
+> jobs:
+>   commits:
+>     if: github.event_name == 'pull_request'
+>     uses: lu-vin/.github/.github/workflows/commits.yml@main
+> ```
+
 ```sh
 gh repo create lu-vin/<nombre> --private --template lu-vin/template-web --clone
 gh repo edit lu-vin/<nombre> --enable-rebase-merge --enable-merge-commit=false --enable-squash-merge=false --delete-branch-on-merge
