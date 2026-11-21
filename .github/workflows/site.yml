@@ -64,9 +64,9 @@ jobs:
       - name: Empaquetar el sitio compilado
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.deploy
         run: |
-          paths="dist"
-          if [ -d .wrangler/deploy ]; then paths="$paths .wrangler/deploy"; fi
-          tar -czf site.tgz $paths
+          paths=(dist)
+          if [ -d .wrangler/deploy ]; then paths+=(.wrangler/deploy); fi
+          tar -czf site.tgz "${paths[@]}"
 
       - name: Guardar el sitio compilado
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.deploy
