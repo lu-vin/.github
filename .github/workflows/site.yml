@@ -27,7 +27,7 @@ on:
         type: string
         required: true
       deploy:
-        description: Publish on pushes to main (false for template-web itself)
+        description: Publish on main, on a push or a manual run (false for template-web itself)
         type: boolean
         default: true
     secrets:
