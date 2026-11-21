@@ -1,0 +1,48 @@
+# Conventional Commits: cada commit de un pull request debe ser "tipo(alcance): resumen".
+# Con rebase cada commit llega tal cual a main, y de esos mensajes salen las versiones y las notas.
+# luvin-architecture: deployment-architecture/0001 (ADR 0001) y 0004 (ADR 0002).
+#
+# Uso, en el CI del repositorio (el job se tiene que llamar "commits": el ruleset de la organización
+# exige el check "commits / Conventional Commits"):
+#
+#   commits:
+#     if: github.event_name == 'pull_request'
+#     uses: lu-vin/.github/.github/workflows/commits.yml@main
+name: Commits
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Los commits del pull request, no el commit de merge que GitHub arma para probarlo.
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Revisar los mensajes
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          if [ -z "${{ github.base_ref }}" ]; then echo "Only pull requests are checked."; exit 0; fi
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([^)]+\))?!?: [^ ]'
+          total=0
+          bad=0
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            total=$((total + 1))
+            if ! printf '%s\n' "${line#* }" | grep -Eq "$pattern"; then
+              echo "::error::Not a Conventional Commit: $line. Use \"type(scope): summary\", for example \"fix(runner): stop on cancel\"."
+              bad=$((bad + 1))
+            fi
+          done < <(git log "$BASE..HEAD" --format='%h %s')
+          echo "$total commit(s) checked, $bad not conventional."
+          [ "$bad" -eq 0 ]

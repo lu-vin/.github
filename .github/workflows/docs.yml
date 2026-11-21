@@ -1,0 +1,30 @@
+# Repositorios de documentos (Markdown y diagramas): revisa que los enlaces entre archivos no estén rotos.
+# Sin red: solo enlaces a archivos del repositorio (los externos cambian solos y harían fallar el CI).
+# luvin-architecture: deployment-architecture/0004 (ADR 0002 y 0003).
+#
+# Uso:
+#
+#   docs:
+#     uses: lu-vin/.github/.github/workflows/docs.yml@main
+name: Docs
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    name: links
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enlaces rotos entre archivos
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: --offline --no-progress --include-fragments './**/*.md'
+          fail: true
+          jobSummary: true

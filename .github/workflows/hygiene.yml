@@ -1,0 +1,14 @@
+name: Hygiene
+
+on:
+  schedule:
+    - cron: '0 13 * * 1' # lunes, 8:00 (UTC-5)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  branches:
+    uses: ./.github/workflows/branches.yml

@@ -1,0 +1,32 @@
+# CI de los workflows compartidos. Un workflow roto rompería el CI de todos los repositorios a la vez:
+# por eso se revisan con actionlint y se usan aquí mismo antes de llegar a main.
+# luvin-architecture: deployment-architecture/0004 (ADR 0002).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  commits:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/commits.yml
+
+  docs:
+    uses: ./.github/workflows/docs.yml
+
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint (con shellcheck)
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color

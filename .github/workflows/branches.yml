@@ -1,0 +1,59 @@
+# Recordatorio semanal de trunk-based development: las ramas de más de N días (2 por defecto) van a un
+# issue para fusionarlas o borrarlas; el issue se cierra solo cuando ya no queda ninguna.
+# luvin-architecture: deployment-architecture/0001 (ADR 0001) y 0004 (ADR 0002).
+#
+# Uso, en un workflow con schedule (por ejemplo, los lunes):
+#
+#   on:
+#     schedule:
+#       - cron: '0 13 * * 1'
+#     workflow_dispatch:
+#   jobs:
+#     branches:
+#       uses: lu-vin/.github/.github/workflows/branches.yml@main
+#       permissions:
+#         contents: read
+#         issues: write
+name: Branches
+
+on:
+  workflow_call:
+    inputs:
+      max-days:
+        description: Branches older than this many days are reported
+        type: number
+        default: 2
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  stale:
+    name: stale branches
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      DAYS: ${{ inputs.max-days }}
+    steps:
+      - name: Ramas viejas
+        run: |
+          main=$(gh api "repos/$REPO" --jq .default_branch)
+          limit=$(date -u -d "$DAYS days ago" +%s)
+          old=""
+          for b in $(gh api "repos/$REPO/branches" --paginate --jq '.[].name'); do
+            [ "$b" = "$main" ] && continue
+            date=$(gh api "repos/$REPO/commits/$b" --jq .commit.committer.date)
+            ahead=$(gh api "repos/$REPO/compare/$main...$b" --jq .ahead_by)
+            if [ "$(date -u -d "$date" +%s)" -lt "$limit" ]; then old="$old- \`$b\`: last commit ${date%%T*}, $ahead commit(s) ahead of $main"$'\n'; fi
+          done
+          title="Branches older than $DAYS days"
+          number=$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$old" ]; then
+            body="Trunk-based development: merge or delete these branches."$'\n\n'"$old"
+            if [ -n "$number" ]; then gh issue comment "$number" --repo "$REPO" --body "$body"; else gh issue create --repo "$REPO" --title "$title" --body "$body"; fi
+          elif [ -n "$number" ]; then
+            gh issue close "$number" --repo "$REPO" --comment "No branch is older than $DAYS days."
+          fi
