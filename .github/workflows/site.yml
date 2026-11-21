@@ -1,4 +1,5 @@
-# Sitio Astro en Cloudflare Workers: compila y revisa en cada pull request; en main, además publica.
+# Sitio Astro en Cloudflare Workers: compila y revisa en cada pull request; en main (un push, o
+# "Run workflow" a mano para volver a publicar), además publica.
 # luvin-architecture: deployment-architecture/0004 (ADR 0002 y 0003).
 #
 # Lo que el repositorio tiene que traer (template-web ya lo trae):
@@ -62,14 +63,14 @@ jobs:
       # Un solo archivo con dist/ y, si existe, .wrangler/deploy/ (el adaptador de Cloudflare lo genera
       # al compilar y wrangler deploy lo necesita), para que el deploy publique exactamente esto.
       - name: Empaquetar el sitio compilado
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.deploy
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && inputs.deploy
         run: |
           paths=(dist)
           if [ -d .wrangler/deploy ]; then paths+=(.wrangler/deploy); fi
           tar -czf site.tgz "${paths[@]}"
 
       - name: Guardar el sitio compilado
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.deploy
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && inputs.deploy
         uses: actions/upload-artifact@v4
         with:
           name: site
@@ -79,7 +80,7 @@ jobs:
   deploy:
     name: deploy
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && inputs.deploy
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && inputs.deploy
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
